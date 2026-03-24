@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Recomp" />
+<meta name="theme-color" content="#7F77DD" />
+<title>Recomp Tracker</title>
+<link rel="manifest" href="manifest.json" />
+<style>
+  :root {
+    --purple: #7F77DD;
+    --green: #1D9E75;
+    --blue: #378ADD;
+    --amber: #EF9F27;
+    --coral: #D85A30;
+    --bg: #ffffff;
+    --bg2: #f5f4f0;
+    --bg3: #eeede8;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #2c2c2a;
+      --bg3: #3a3a38;
+      --text: #f0efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: calc(64px + var(--safe-bottom));
+  }
+
+  /* Header */
+  .header {
+    padding: 16px 20px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title { font-size: 22px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .header-phase {
+    font-size: 11px; font-weight: 500; padding: 4px 10px;
+    border-radius: 20px; background: var(--purple); color: #fff;
+  }
+
+  /* Bottom nav */
+  .nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--bg);
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 10px 4px 8px; border: none; background: none;
+    color: var(--text3); font-size: 10px; font-family: inherit; cursor: pointer;
+  }
+  .nav-btn.active { color: var(--purple); }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  /* Scroll area */
+  .content { flex: 1; overflow-y: auto; padding: 8px 16px 16px; }
+
+  /* Cards */
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-secondary { background: var(--bg2); border: none; }
+
+  /* Section label */
+  .slabel {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+    color: var(--text3); text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+  .slabel:first-child { margin-top: 4px; }
+
+  /* Phase banners */
+  .phase-banner {
+    border-radius: var(--radius); padding: 14px 16px;
+    margin-bottom: 10px; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .phase-banner.active-phase { background: rgba(127,119,221,0.12); border: 0.5px solid rgba(127,119,221,0.3); }
+  .phase-banner.next-phase { background: var(--bg2); border: 0.5px solid var(--border); }
+  .ph-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .ph-detail { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .ph-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .ph-badge.on { background: var(--purple); color: #fff; }
+  .ph-badge.off { background: var(--bg3); color: var(--text3); }
+
+  /* Rings */
+  .rings-row { display: flex; justify-content: center; gap: 24px; padding: 8px 0 4px; }
+  .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ring-label { font-size: 11px; color: var(--text2); }
+  .ring-val { font-size: 12px; font-weight: 500; color: var(--text); }
+
+  /* Progress bars */
+  .prog-row { margin-bottom: 14px; }
+  .prog-row:last-child { margin-bottom: 0; }
+  .prog-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .prog-name { font-size: 13px; font-weight: 500; }
+  .prog-pct { font-size: 12px; color: var(--text2); }
+  .bar-bg { width: 100%; height: 8px; background: var(--bg3); border-radius: 4px; overflow: visible; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+  .bar-tick { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--text3); border-radius: 1px; }
+  .prog-meta { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--text3); }
+
+  /* Stat grid */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-box { background: var(--bg2); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+  .stat-box .sv { font-size: 18px; font-weight: 600; color: var(--text); }
+  .stat-box .sl { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+  .stat-box .ss { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* Insights */
+  .insight { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+  .insight:last-child { border-bottom: none; }
+  .idot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .itext { font-size: 12px; color: var(--text2); line-height: 1.55; }
+  .itext strong { color: var(--text); font-weight: 500; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text2); }
+  .field input {
+    height: 40px; padding: 0 12px; border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2); background: var(--bg2);
+    color: var(--text); font-size: 14px; font-family: inherit;
+    -webkit-appearance: none;
+  }
+  .field input:focus { outline: none; border-color: var(--purple); }
+  .btn {
+    width: 100%; margin-top: 14px; padding: 12px;
+    border-radius: var(--radius-sm); border: none;
+    background: var(--purple); color: #fff;
+    font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer;
+  }
+  .btn:active { opacity: 0.85; }
+  .btn-ghost {
+    background: var(--bg2); color: var(--text);
+    border: 0.5px solid var(--border);
+  }
+
+  /* History rows */
+  .hrow { display: flex; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .hrow:last-child { border-bottom: none; }
+  .hrow-main { flex: 1; }
+  .hrow-date { font-size: 13px; font-weight: 500; }
+  .hrow-vals { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .del { font-size: 11px; color: var(--text3); padding: 4px 8px; border-radius: 6px; border: 0.5px solid var(--border); background: none; color: var(--coral); font-family: inherit; cursor: pointer; }
+
+  /* Milestones */
+  .mrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .mrow:last-child { border-bottom: none; }
+  .mcheck {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--border2); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mcheck.done { background: var(--green); border-color: var(--green); }
+  .mcheck.done::after {
+    content: ''; width: 6px; height: 4px;
+    border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px,-1px); display: block;
+  }
+  .mlabel { font-size: 13px; color: var(--text2); flex: 1; }
+  .mlabel.done { color: var(--text3); text-decoration: line-through; }
+  .mtarget { font-size: 11px; color: var(--text3); }
+
+  /* Settings */
+  .setting-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .setting-row label { font-size: 12px; color: var(--text2); width: 145px; flex-shrink: 0; }
+  .setting-row input { flex: 1; height: 36px; padding: 0 10px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); font-size: 13px; font-family: inherit; }
+
+  /* Install banner */
+  .install-banner {
+    background: rgba(127,119,221,0.1); border: 0.5px solid rgba(127,119,221,0.25);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .install-banner .ib-icon { font-size: 24px; flex-shrink: 0; }
+  .install-banner .ib-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .install-banner .ib-text strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 2px; }
+  .install-btn { margin-top: 8px; padding: 7px 14px; background: var(--purple); color: #fff; border: none; border-radius: 20px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: calc(72px + var(--safe-bottom)); left: 50%;
+    transform: translateX(-50%); background: var(--green); color: #fff;
+    font-size: 13px; padding: 9px 20px; border-radius: 20px;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title">Recomp</div>
+      <div class="header-sub" id="header-sub">Body recomposition tracker</div>
+    </div>
+    <div class="header-phase" id="header-phase">Phase 1</div>
+  </div>
+
+  <div class="content" id="content"></div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="switchTab('goals')" id="nav-goals">
+      <span class="nav-icon">🎯</span>Goals
+    </button>
+    <button class="nav-btn" onclick="switchTab('log')" id="nav-log">
+      <span class="nav-icon">📋</span>Log
+    </button>
+    <button class="nav-btn" onclick="switchTab('milestones')" id="nav-milestones">
+      <span class="nav-icon">🏆</span>Steps
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
+      <span class="nav-icon">⚙️</span>Settings
+    </button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SK = 'recomp_v2';
+const TODAY = new Date().toISOString().slice(0,10);
+
+const DEFAULTS = {
+  start: { weight: 70.75, bf: 22.8, muscle: 39.5, date: TODAY },
+  phase1: { bf: 15.0, muscle: 41.0, deadline: '2026-06-30' },
+  phase2: { bf: 10.0, muscle: 43.0, deadline: '2026-12-31' },
+  entries: []
+};
+
+let state, deferredPrompt;
+
+function load() {
+  try { const r = localStorage.getItem(SK); return r ? JSON.parse(r) : JSON.parse(JSON.stringify(DEFAULTS)); }
+  catch(e) { return JSON.parse(JSON.stringify(DEFAULTS)); }
+}
+function persist() { localStorage.setItem(SK, JSON.stringify(state)); }
+function latest() { return state.entries.length ? state.entries[0] : state.start; }
+function daysTo(d) { return Math.max(0, Math.round((new Date(d) - new Date()) / 86400000)); }
+function activePhase() { return new Date() <= new Date(state.phase1.deadline) ? 1 : 2; }
+function pct(cur, start, goal) {
+  if (goal === start) return 100;
+  return Math.min(100, Math.max(0, Math.round(((cur - start) / (goal - start)) * 100)));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function drawRing(id, p, color) {
+  const c = document.getElementById(id); if (!c) return;
+  const ctx = c.getContext('2d');
+  const cx=56, cy=56, r=44, lw=10;
+  ctx.clearRect(0,0,112,112);
+  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
+  ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);
+  ctx.strokeStyle = isDark ? '#3a3a38' : '#e8e7e0';
+  ctx.lineWidth=lw; ctx.lineCap='round'; ctx.stroke();
+  if (p > 0) {
+    ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,(p/100)*Math.PI*2-Math.PI/2);
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.stroke();
+  }
+  const isDarkMode = matchMedia('(prefers-color-scheme:dark)').matches;
+  ctx.font = '600 16px -apple-system,sans-serif';
+  ctx.fillStyle = color; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(p+'%', cx, cy-7);
+  ctx.font = '11px -apple-system,sans-serif';
+  ctx.fillStyle = isDarkMode ? '#888780' : '#888780';
+  ctx.fillText('done', cx, cy+10);
+}
+
+function updateHeader() {
+  const ph = activePhase();
+  document.getElementById('header-phase').textContent = 'Phase ' + ph;
+  document.getElementById('header-sub').textContent = ph === 1
+    ? `${daysTo(state.phase1.deadline)}d to Jun 30`
+    : `${daysTo(state.phase2.deadline)}d to Dec 31`;
+}
+
+// ── GOALS ──────────────────────────────────────────────
+function renderGoals() {
+  const cur = latest(), s = state.start, p1 = state.phase1, p2 = state.phase2;
+  const ph = activePhase(), curGoal = ph===1 ? p1 : p2;
+  const bfPct  = pct(cur.bf, s.bf, curGoal.bf);
+  const muPct  = pct(cur.muscle, s.muscle, curGoal.muscle);
+  const bfPct2 = pct(cur.bf, s.bf, p2.bf);
+  const muPct2 = pct(cur.muscle, s.muscle, p2.muscle);
+  const fatMass  = (cur.weight * cur.bf / 100).toFixed(1);
+  const leanMass = (cur.weight * (1 - cur.bf/100)).toFixed(1);
+  const p1TickBf = Math.round(((p1.bf - s.bf)/(p2.bf - s.bf))*100);
+  const p1TickMu = Math.round(((p1.muscle - s.muscle)/(p2.muscle - s.muscle))*100);
+
+  const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+  const installBanner = (!isInstalled && deferredPrompt) ? `
+    <div class="install-banner">
+      <div class="ib-icon">📲</div>
+      <div>
+        <div class="ib-text"><strong>Add to home screen</strong>Install Recomp for quick access, just like a native app.</div>
+        <button class="install-btn" onclick="installPWA()">Install app</button>
+      </div>
+    </div>` : (!isInstalled ? `
+    <div class="install-banner">
+      <div class="ib-icon">📲</div>
+      <div class="ib-text"><strong>Add to home screen</strong>In Chrome: tap the menu (⋮) → "Add to Home screen" to install this app.</div>
+    </div>` : '');
+
+  document.getElementById('content').innerHTML = `
+    ${installBanner}
+
+    <div class="phase-banner ${ph===1?'active-phase':'next-phase'}">
+      <div>
+        <div class="ph-name">Phase 1 — 15% body fat</div>
+        <div class="ph-detail">${daysTo(p1.deadline)} days · deadline Jun 30, 2026</div>
+      </div>
+      <span class="ph-badge ${ph===1?'on':'off'}">${ph===1?'Active':'Done'}</span>
+    </div>
+    <div class="phase-banner ${ph===2?'active-phase':'next-phase'}">
+      <div>
+        <div class="ph-name">Phase 2 — 10% body fat</div>
+        <div class="ph-detail">${daysTo(p2.deadline)} days · deadline Dec 31, 2026</div>
+      </div>
+      <span class="ph-badge ${ph===2?'on':'off'}">${ph===2?'Active':'Upcoming'}</span>
+    </div>
+
+    <div class="slabel">Progress — phase ${ph} goal</div>
+    <div class="card">
+      <div class="rings-row">
+        <div class="ring-wrap">
+          <canvas id="ring-bf" width="112" height="112"></canvas>
+          <div class="ring-label">Body fat</div>
+          <div class="ring-val">${cur.bf}% → ${curGoal.bf}%</div>
+        </div>
+        <div class="ring-wrap">
+          <canvas id="ring-mu" width="112" height="112"></canvas>
+          <div class="ring-label">Muscle mass</div>
+          <div class="ring-val">${cur.muscle}kg → ${curGoal.muscle}kg</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slabel">Full journey — start to Dec 31</div>
+    <div class="card">
+      <div class="prog-row">
+        <div class="prog-head">
+          <span class="prog-name">Body fat %</span>
+          <span class="prog-pct">${bfPct2}% of total</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${bfPct2}%;background:var(--purple);"></div>
+          <div class="bar-tick" style="left:${p1TickBf}%;"></div>
+        </div>
+        <div class="prog-meta">
+          <span>${s.bf}% start</span>
+          <span style="color:var(--blue)">15% Jun</span>
+          <span>10% Dec</span>
+        </div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-head">
+          <span class="prog-name">Muscle mass</span>
+          <span class="prog-pct">${muPct2}% of total</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${muPct2}%;background:var(--green);"></div>
+          <div class="bar-tick" style="left:${p1TickMu}%;"></div>
+        </div>
+        <div class="prog-meta">
+          <span>${s.muscle}kg start</span>
+          <span style="color:var(--blue)">${p1.muscle}kg Jun</span>
+          <span>${p2.muscle}kg Dec</span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;">Tick marks show phase 1 checkpoints</div>
+    </div>
+
+    <div class="slabel">Composition snapshot</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="sl">Weight</div><div class="sv">${cur.weight}kg</div><div class="ss">Current</div></div>
+      <div class="stat-box"><div class="sl">Fat mass</div><div class="sv">${fatMass}kg</div><div class="ss">${cur.bf}%</div></div>
+      <div class="stat-box"><div class="sl">Lean mass</div><div class="sv">${leanMass}kg</div><div class="ss">Est.</div></div>
+    </div>
+
+    <div class="slabel">Insights</div>
+    <div class="card">
+      <div class="insight"><div class="idot" style="background:var(--purple)"></div>
+        <div class="itext">Phase 1: lose <strong>${(cur.bf-p1.bf).toFixed(1)}pp body fat</strong> in ${daysTo(p1.deadline)} days — <strong>${((cur.bf-p1.bf)/(daysTo(p1.deadline)/7)).toFixed(2)}pp/week</strong> needed.</div>
+      </div>
+      <div class="insight"><div class="idot" style="background:var(--blue)"></div>
+        <div class="itext">Phase 2: additional <strong>${(p1.bf-p2.bf).toFixed(1)}pp drop</strong> over ${Math.round((new Date(p2.deadline)-new Date(p1.deadline))/86400000)} days. Expect slower muscle gain at sub-15% BF.</div>
+      </div>
+      <div class="insight"><div class="idot" style="background:var(--green)"></div>
+        <div class="itext">Recommended: check in <strong>every 2 weeks</strong>. Daily weight swings mislead — fortnightly trends are signal.</div>
+      </div>
+      <div class="insight"><div class="idot" style="background:var(--amber)"></div>
+        <div class="itext">10% BF is competition-lean. Prioritise <strong>2g+ protein per kg</strong> and progressive overload to retain muscle while cutting.</div>
+      </div>
+    </div>
+  `;
+
+  requestAnimationFrame(() => {
+    drawRing('ring-bf', bfPct, '#7F77DD');
+    drawRing('ring-mu', muPct, '#1D9E75');
+  });
+}
+
+// ── LOG ──────────────────────────────────────────────
+function renderLog() {
+  const historyHTML = state.entries.length ? `
+    <div class="slabel">Check-in history</div>
+    <div class="card">
+      ${state.entries.map((e,i) => `
+        <div class="hrow">
+          <div class="hrow-main">
+            <div class="hrow-date">${e.date}</div>
+            <div class="hrow-vals">${e.weight}kg · ${e.bf}% BF · ${e.muscle}kg muscle</div>
+          </div>
+          <button class="del" onclick="deleteEntry(${i})">delete</button>
+        </div>`).join('')}
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = `
+    <div class="slabel">New check-in</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="field"><label>Weight (kg)</label><input id="l-w" type="number" step="0.1" inputmode="decimal" placeholder="${latest().weight}" /></div>
+        <div class="field"><label>Body fat %</label><input id="l-bf" type="number" step="0.1" inputmode="decimal" placeholder="${latest().bf}" /></div>
+        <div class="field"><label>Muscle mass (kg)</label><input id="l-mu" type="number" step="0.1" inputmode="decimal" placeholder="${latest().muscle}" /></div>
+        <div class="field"><label>Date</label><input id="l-dt" type="date" value="${TODAY}" /></div>
+      </div>
+      <button class="btn" onclick="logEntry()">Save check-in</button>
+    </div>
+    ${historyHTML}
+  `;
+}
+
+function logEntry() {
+  const w  = parseFloat(document.getElementById('l-w').value);
+  const bf = parseFloat(document.getElementById('l-bf').value);
+  const mu = parseFloat(document.getElementById('l-mu').value);
+  const dt = document.getElementById('l-dt').value;
+  if (!w && !bf && !mu) { showToast('Enter at least one value'); return; }
+  const prev = latest();
+  const idx = state.entries.findIndex(e => e.date === (dt||TODAY));
+  const entry = { date: dt||TODAY, weight: w||prev.weight, bf: bf||prev.bf, muscle: mu||prev.muscle };
+  if (idx >= 0) state.entries[idx] = entry;
+  else state.entries.unshift(entry);
+  state.entries.sort((a,b) => b.date.localeCompare(a.date));
+  persist(); showToast('Check-in saved ✓');
+  renderLog(); updateHeader();
+}
+
+function deleteEntry(i) {
+  state.entries.splice(i,1);
+  persist(); renderLog(); updateHeader();
+}
+
+// ── MILESTONES ──────────────────────────────────────────────
+function renderMilestones() {
+  const cur = latest(), s = state.start;
+  const p1bf = [22,20,18,16,15].map(v => ({ label:`Body fat ≤ ${v}%`, done: cur.bf<=v, target:`${v}%` }));
+  const p2bf = [14,13,12,11,10].map(v => ({ label:`Body fat ≤ ${v}%`, done: cur.bf<=v, target:`${v}%` }));
+  const muSteps = [0.5,1.5,2.5,3.5].map(v => ({ label:`Gain ${v}kg muscle`, done: cur.muscle>=s.muscle+v, target:`${(s.muscle+v).toFixed(1)}kg` }));
+
+  const rows = arr => arr.map(m => `
+    <div class="mrow">
+      <div class="mcheck ${m.done?'done':''}"></div>
+      <div class="mlabel ${m.done?'done':''}">${m.label}</div>
+      <div class="mtarget">${m.target}</div>
+    </div>`).join('');
+
+  const p1done = p1bf.filter(m=>m.done).length;
+  const p2done = p2bf.filter(m=>m.done).length;
+  const mudone = muSteps.filter(m=>m.done).length;
+
+  document.getElementById('content').innerHTML = `
+    <div class="slabel">Phase 1 — body fat (${p1done}/${p1bf.length} done)</div>
+    <div class="card">${rows(p1bf)}</div>
+    <div class="slabel">Phase 2 — body fat (${p2done}/${p2bf.length} done)</div>
+    <div class="card">${rows(p2bf)}</div>
+    <div class="slabel">Muscle mass (${mudone}/${muSteps.length} done)</div>
+    <div class="card">${rows(muSteps)}</div>
+  `;
+}
+
+// ── SETTINGS ──────────────────────────────────────────────
+function renderSettings() {
+  const p1=state.phase1, p2=state.phase2, s=state.start;
+  document.getElementById('content').innerHTML = `
+    <div class="slabel">Phase 1 goal</div>
+    <div class="card">
+      <div class="setting-row"><label>Body fat % target</label><input id="p1-bf" type="number" step="0.1" value="${p1.bf}" /></div>
+      <div class="setting-row"><label>Muscle mass (kg)</label><input id="p1-mu" type="number" step="0.1" value="${p1.muscle}" /></div>
+      <div class="setting-row"><label>Deadline</label><input id="p1-dl" type="date" value="${p1.deadline}" /></div>
+      <button class="btn" onclick="savePhase(1)">Update phase 1</button>
+    </div>
+    <div class="slabel">Phase 2 goal</div>
+    <div class="card">
+      <div class="setting-row"><label>Body fat % target</label><input id="p2-bf" type="number" step="0.1" value="${p2.bf}" /></div>
+      <div class="setting-row"><label>Muscle mass (kg)</label><input id="p2-mu" type="number" step="0.1" value="${p2.muscle}" /></div>
+      <div class="setting-row"><label>Deadline</label><input id="p2-dl" type="date" value="${p2.deadline}" /></div>
+      <button class="btn" onclick="savePhase(2)">Update phase 2</button>
+    </div>
+    <div class="slabel">Starting point</div>
+    <div class="card">
+      <div class="setting-row"><label>Weight (kg)</label><input id="s-w" type="number" step="0.1" value="${s.weight}" /></div>
+      <div class="setting-row"><label>Body fat %</label><input id="s-bf" type="number" step="0.1" value="${s.bf}" /></div>
+      <div class="setting-row"><label>Muscle mass (kg)</label><input id="s-mu" type="number" step="0.1" value="${s.muscle}" /></div>
+      <button class="btn" onclick="saveStart()">Update starting point</button>
+    </div>
+    <div class="slabel">Data</div>
+    <div class="card">
+      <button class="btn btn-ghost" onclick="exportCSV()">Export data as CSV</button>
+    </div>
+  `;
+}
+
+function savePhase(n) {
+  if (n===1) {
+    state.phase1.bf = parseFloat(document.getElementById('p1-bf').value)||state.phase1.bf;
+    state.phase1.muscle = parseFloat(document.getElementById('p1-mu').value)||state.phase1.muscle;
+    state.phase1.deadline = document.getElementById('p1-dl').value||state.phase1.deadline;
+  } else {
+    state.phase2.bf = parseFloat(document.getElementById('p2-bf').value)||state.phase2.bf;
+    state.phase2.muscle = parseFloat(document.getElementById('p2-mu').value)||state.phase2.muscle;
+    state.phase2.deadline = document.getElementById('p2-dl').value||state.phase2.deadline;
+  }
+  persist(); showToast(`Phase ${n} updated ✓`); updateHeader();
+}
+
+function saveStart() {
+  state.start.weight = parseFloat(document.getElementById('s-w').value)||state.start.weight;
+  state.start.bf = parseFloat(document.getElementById('s-bf').value)||state.start.bf;
+  state.start.muscle = parseFloat(document.getElementById('s-mu').value)||state.start.muscle;
+  persist(); showToast('Starting point updated ✓');
+}
+
+function exportCSV() {
+  const keys = ['date','weight','bf','muscle'];
+  const rows = [keys.join(','), ...state.entries.map(e => keys.map(k=>e[k]??'').join(','))];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv'}));
+  a.download = 'recomp-data.csv'; a.click();
+}
+
+// ── TABS ──────────────────────────────────────────────
+let currentTab = 'goals';
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['goals','log','milestones','settings'].forEach(t => {
+    document.getElementById('nav-'+t)?.classList.toggle('active', t===tab);
+  });
+  if (tab==='goals') renderGoals();
+  else if (tab==='log') renderLog();
+  else if (tab==='milestones') renderMilestones();
+  else if (tab==='settings') renderSettings();
+}
+
+// ── PWA INSTALL ──────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (currentTab === 'goals') renderGoals();
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') showToast('App installed!');
+    deferredPrompt = null;
+    renderGoals();
+  });
+}
+
+// ── BOOT ──────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(console.error);
+}
+
+state = load();
+updateHeader();
+renderGoals();
+</script>
+</body>
+</html>
